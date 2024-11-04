@@ -1,8 +1,13 @@
+import Assignment from "../db/schema/AssignmentSchema.js";
 import Story from "../db/schema/StorySchema.js";
 import User from "../db/schema/UserSchema.js";
 import { generateImage } from "../openai/generateImage.js";
 import { generateStory } from "../openai/generateStory.js";
 import { v2 as cloudinary } from "cloudinary";
+import mongoose from "mongoose";
+import { generateQuestions } from "../openai/generateQuestions.js";
+import { generateFeedback } from "../openai/generateFeedback.js";
+import Feedback from "../db/schema/FeedbackSchema.js";
 // For downloading images if needed
 
 const createStoryController = async (req, res) => {
@@ -99,4 +104,104 @@ const getStoryController = async (req, res) => {
   }
 };
 
-export { createStoryController, getStoryController };
+const getAllStoriesController = async (req, res) => {
+  const { uid } = req.params;
+
+  try {
+    // Validate the uid before querying the database
+    if (!mongoose.Types.ObjectId.isValid(uid)) {
+      return res.status(400).json({ message: "Invalid user ID format" });
+    }
+
+    // Fetch stories created by the user
+    const stories = await Story.find({
+      createdBy: new mongoose.Types.ObjectId(uid), // Convert uid to ObjectId if necessary
+    });
+
+    return res.status(200).json({ stories });
+  } catch (error) {
+    console.error("Error getting all stories:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+const createAssignmentController = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { sid } = req.params;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const story = await Story.findById(sid);
+    if (!story) {
+      return res.status(404).json({ message: "Story not found" });
+    }
+    if (story.createdBy.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+    const assignmentExists = await Assignment.findOne({ sid, uid: userId });
+    if (assignmentExists) {
+      console.log("Assignment already exists", assignmentExists); // Log the existing assignment instead
+      return res.status(200).json({
+        assignment: assignmentExists,
+      });
+    }
+    const storyContent = story?.storyContent;
+    const storyTitle = story?.storyTitle;
+    const { questions } = await generateQuestions({ storyContent, storyTitle });
+    const assignment = new Assignment({
+      sid,
+      uid: userId,
+      questions,
+    });
+    await assignment.save();
+    console.log("Assignment created successfully", assignment);
+    return res.status(201).json({ assignment });
+  } catch (error) {
+    console.error("Error creating assignment:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+const feedbackAssignmentController = async (req, res) => {
+  const { sid } = req.params;
+  const { answers } = req.body;
+  const userId = req.user._id;
+  const assignment = await Assignment.findOne({ sid, uid: userId });
+  if (!assignment) {
+    return res.status(404).json({ message: "Assignment not found" });
+  }
+  const story = await Story.findById(sid);
+  if (!story) {
+    return res.status(404).json({ message: "Story not found" });
+  }
+  const storyContent = story.storyContent;
+  const questions = assignment.questions;
+  for (let i = 0; i < questions.length; i++) {
+    questions[i].userAnswer = answers[i];
+  }
+  const feedback = await generateFeedback({ questions, storyContent });
+  const saveFeedbacks = new Feedback({
+    sid,
+    uid: userId,
+    feedbacks: feedback.results,
+  });
+  await saveFeedbacks.save();
+  return res.status(200).json({ saveFeedbacks });
+};
+const getFeedbackController = async (req, res) => {
+  const { sid } = req.params;
+  const userId = req.user._id;
+  const feedback = await Feedback.findOne({ sid, uid: userId });
+  if (!feedback) {
+    return res.status(404).json({ message: "Feedback not found" });
+  }
+  return res.status(200).json({ feedback });
+};
+export {
+  createStoryController,
+  getStoryController,
+  getAllStoriesController,
+  createAssignmentController,
+  feedbackAssignmentController,
+  getFeedbackController,
+};

@@ -22,6 +22,7 @@ app.use(
     credentials: true, // Allow credentials (cookies, authentication)
   })
 );
+
 const PORT = process.env.PORT || 3000;
 await connectDB();
 cloudinary.config({
