@@ -8,4 +8,5 @@ import {
 const router = express.Router();
 router.post("/signup", userSignUpController);
 router.post("/logout", logoutController);
+router.post("/login", userLoginController);
 export default router;
