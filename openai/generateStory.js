@@ -19,7 +19,6 @@ export async function generateStory({
   - Each page should have a minimum of 250 words.
   - The response should follow this format:
   
-  
   {
     "storyTitle": "${storyTitle}",
     "storyDescription": "${storyDescription}",

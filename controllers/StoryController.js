@@ -88,7 +88,8 @@ const getStoryController = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const story = await Story.findById(sid);
+    const story = await Story.findById(sid.toString());
+
     if (!story) {
       return res.status(404).json({ message: "Story not found" });
     }
@@ -197,6 +198,24 @@ const getFeedbackController = async (req, res) => {
   }
   return res.status(200).json({ feedback });
 };
+const getFullStoryController = async (req, res) => {
+  const { sid } = req.params;
+  const userId = req.user._id;
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+  const story = await Story.findById(sid);
+
+  if (!story) {
+    return res.status(404).json({ message: "Story not found" });
+  }
+  let wholeStory = "";
+  for (let i = 0; i < story.storyContent.length; i++) {
+    wholeStory += story.storyContent[i].pageText;
+  }
+  return res.status(200).json({ wholeStory });
+};
 export {
   createStoryController,
   getStoryController,
@@ -204,4 +223,5 @@ export {
   createAssignmentController,
   feedbackAssignmentController,
   getFeedbackController,
+  getFullStoryController,
 };

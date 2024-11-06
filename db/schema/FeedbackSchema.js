@@ -23,7 +23,7 @@ const feedbackSchema = new mongoose.Schema({
       },
       userAnswer: {
         type: String,
-        required: true,
+        default: "",
       },
       rating: {
         type: Number,
