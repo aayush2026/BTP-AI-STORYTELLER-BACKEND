@@ -4,8 +4,11 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export async function generateFeedback({ questions, storyContent }) {
+
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  
   const wholeStory = storyContent?.map((page) => page.pageText).join(" ");
+  
   const systemPrompt = `You are a supportive reading assistant focused on enhancing children’s reading comprehension. 
   You will be given the full story, the question, the child’s answer, 
   and the correct answer. Use this information to compare the child’s response with the correct answer and assess their understanding. 
@@ -87,8 +90,10 @@ Please return the feedback and rating for each question in the exact JSON format
       },
     ],
   });
+
   const data = response.choices[0].message.content;
   const sanitizedData = data.trim().replace(/[\r\n]+/g, "");
+  
   try {
     const feedback = JSON.parse(sanitizedData);
     return feedback;

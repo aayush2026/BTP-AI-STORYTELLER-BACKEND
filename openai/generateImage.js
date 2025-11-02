@@ -1,5 +1,6 @@
 import { OpenAI } from "openai";
 import dotenv from "dotenv";
+
 dotenv.config();
 
 export async function generateImage({ pageText }) {
@@ -16,7 +17,7 @@ export async function generateImage({ pageText }) {
   try {
     // Get the final prompt from GPT
     const chatResponse = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Use a valid model
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -37,26 +38,29 @@ export async function generateImage({ pageText }) {
   }
 
   try {
-    // Generate the image based on the prompt
+    // Generate the image based on the final prompt
     const imageResponse = await openai.images.generate({
       prompt: finalPrompt,
       model: "dall-e-3",
-      n: 1, // Generate 1 image
-      response_format: "url", // Ensure you're getting the image URL
+      n: 1, // generate 1 image
+      response_format: "url", // get the image URL
       style: "vivid",
       quality: "standard",
       size: "1024x1024",
     });
 
-    // Ensure you're accessing the correct structure of the response
+    // Access the correct structure of the response
     if (imageResponse.data && imageResponse.data.length > 0) {
       return imageResponse.data[0].url; // Return the first URL from the response
     } else {
-      console.error("No image URL returned in response");
+      console.error("No image URL returned in response in generateImage");
       return null;
     }
   } catch (error) {
-    console.error("Error generating image:", error);
-    throw error;
+    console.error("Error generating image in generateImage:", error);
+    return {
+      error: "Failed to generate image",
+      details: error.message,
+    };
   }
 }

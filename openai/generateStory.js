@@ -1,16 +1,21 @@
 import { OpenAI } from "openai";
 import dotenv from "dotenv";
+
 dotenv.config();
+
 export async function generateStory({
   storyDescription,
   storyTitle,
   maxPages,
   childAge,
 }) {
+  // Initialize OpenAI
   const openai = new OpenAI(process.env.OPENAI_API_KEY);
 
+  // This prompt is used to guide the AI in generating the story
   const systemPrompt = `You are a helpful and creative assistant designed to generate engaging and age-appropriate stories for children. Your stories should be fun, imaginative, and suitable for the given age group, ensuring they are both entertaining and educational.`;
 
+  // This prompt is used to generate the story
   const userPrompt = `Generate a story for a child of age ${childAge} with the following details:
   - Story Title: "${storyTitle}"
   - Story Description: "${storyDescription}"
@@ -58,8 +63,12 @@ export async function generateStory({
     } catch (err) {
       return storyContent; // Return as plain text if JSON parsing fails
     }
+
   } catch (error) {
     console.error("Error generating story:", error);
-    throw new Error("Failed to generate story");
+    return {
+      error: "Failed to generate story",
+      details: error.message,
+    };
   }
 }
