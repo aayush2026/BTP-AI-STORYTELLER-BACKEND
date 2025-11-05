@@ -51,7 +51,7 @@ app.get("/", (req, res) => {
 // Route handlers
 app.use("/api/user", UserRoutes);
 app.use("/api/story", StoryRoutes);
-app.use("/", AudioRoutes); // Handles /upload, /audios, and /audio/finalFeedback routes
+app.use("/", AudioRoutes);
 
 // Serve uploaded files statically
 const __filename = fileURLToPath(import.meta.url);
