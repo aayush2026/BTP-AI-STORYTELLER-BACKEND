@@ -5,9 +5,10 @@ const uploadAudioController = async (req, res) => {
   try {
     const { sid } = req.params;
     console.log("Received sid:", sid);
+
+    // Get the story from the database
     const story = await Story.findById(sid);
     console.log("Story found:", story);
-
     if (!story) {
       return res.status(404).json({ message: "Story not found" });
     }
@@ -17,6 +18,7 @@ const uploadAudioController = async (req, res) => {
       wholeStory += story.storyContent[i].pageText;
     }
 
+    // Create a new audio object and save it to the database
     const newAudio = new Audio({
       filePath: req.file.path,
       fileName: req.file.originalname,
@@ -53,6 +55,7 @@ const getFinalFeedbackController = async (req, res) => {
 
 const getAudiosController = async (req, res) => {
   try {
+    // Get all audios from the database
     const audios = await Audio.find();
     res.json(audios);
   } catch (error) {

@@ -6,10 +6,8 @@ import Story from "../db/schema/StorySchema.js";
 import Assignment from "../db/schema/AssignmentSchema.js";
 import Feedback from "../db/schema/FeedbackSchema.js";
 
-import { generateStory } from "../openai/generateStory.js";
-import { generateImage } from "../openai/generateImage.js";
-import { generateQuestions } from "../openai/generateQuestions.js";
-import { generateFeedback } from "../openai/generateFeedback.js";
+// Import from the provider switcher - will use OpenAI or Gemini based on AI_PROVIDER env variable
+import { generateStory, generateImage, generateQuestions, generateFeedback } from "../ai/index.js";
 
 
 // Story Controller Functions
@@ -236,7 +234,31 @@ const createAssignmentController = async (req, res) => {
 
     // Generate questions
     // returns questions in format: [ { question: "Question 1", answer: "Answer 1" }, { question: "Question 2", answer: "Answer 2" }, ... ]
-    const { questions } = await generateQuestions({ storyContent, storyTitle });
+    const questionsResult = await generateQuestions({ storyContent, storyTitle });
+    
+    // Check if there was an error in question generation
+    if (questionsResult.error) {
+      console.error("Error generating questions:", questionsResult.error);
+      console.error("Raw response:", questionsResult.rawResponse || questionsResult.details);
+      return res.status(500).json({
+        message: "Failed to generate questions",
+        error: questionsResult.error,
+        details: questionsResult.details || questionsResult.rawResponse,
+      });
+    }
+
+    // Extract questions from the result
+    const { questions } = questionsResult;
+    
+    // Validate that questions exist and is an array
+    if (!questions || !Array.isArray(questions) || questions.length === 0) {
+      console.error("Invalid questions format:", questions);
+      return res.status(500).json({
+        message: "Failed to generate questions",
+        error: "Invalid questions format returned from AI",
+      });
+    }
+
     const assignment = new Assignment({
       sid,
       uid: userId,
