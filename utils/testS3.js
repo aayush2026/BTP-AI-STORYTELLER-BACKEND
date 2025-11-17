@@ -46,7 +46,7 @@ async function testS3Configuration() {
     const { uploadUrl, key } = await getUploadUrl("test-audio.wav", "audio/wav");
     console.log(`   ✅ Generated upload URL successfully`);
     console.log(`   📝 S3 Key: ${key}`);
-    console.log(`   🔗 Upload URL: ${uploadUrl.substring(0, 80)}...`);
+    console.log(`   🔗 Upload URL: ${uploadUrl}`);
   } catch (error) {
     console.error(`   ❌ Failed to generate upload URL:`, error.message);
     process.exit(1);
@@ -55,11 +55,11 @@ async function testS3Configuration() {
   console.log("\n3️⃣  Testing Pre-signed Download URL Generation:");
   try {
     // Use a test key (even if object doesn't exist, pre-signed URL should generate)
-    const testKey = "uploads/audio/test-file.wav";
+    const testKey = "uploads/audio/1763401344822-test-audio.wav";
     const downloadUrl = await getObjectUrl(testKey);
     console.log(`   ✅ Generated download URL successfully`);
     console.log(`   📝 S3 Key: ${testKey}`);
-    console.log(`   🔗 Download URL: ${downloadUrl.substring(0, 80)}...`);
+    console.log(`   🔗 Download URL: ${downloadUrl}`);
   } catch (error) {
     console.error(`   ❌ Failed to generate download URL:`, error.message);
     process.exit(1);

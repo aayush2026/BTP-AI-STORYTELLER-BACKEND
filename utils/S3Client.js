@@ -20,6 +20,16 @@ export const s3Client = new S3Client({
  * @returns {Promise<string>} Pre-signed GET URL
  */
 export async function getObjectUrl(key, expiresIn = 3600) {
+  const cdnBase = process.env.CDN_BASE_URL;
+
+  if (cdnBase){
+    // Normalize to avoid double/missing slashes
+    const base = cdnBase.replace(/\/+$/, "");
+    const path = String(key || "").replace(/^\/+/, "");
+    return `${base}/${path}`;
+  }
+
+  // Fallback to direct S3 access if CDN not configured
   const command = new GetObjectCommand({
     Bucket: process.env.S3_BUCKET_NAME,
     Key: key,

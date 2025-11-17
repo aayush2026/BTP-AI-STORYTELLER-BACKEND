@@ -2,10 +2,11 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from openai import OpenAI
 import assemblyai as aai
-from jiwer import wer
+import boto3
 import os
 import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
+from jiwer import wer
 import string
 from dotenv import load_dotenv
 from pymongo import MongoClient
@@ -14,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from difflib import ndiff
 
 app=FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],  # Add the frontend URL here
@@ -30,6 +32,38 @@ client = MongoClient(os.getenv("MONGODB_URI"))
 
 db = client["test"]
 audios_collection = db["audios"]
+
+# S3 Configuration
+S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
+AWS_REGION = os.getenv("AWS_REGION")
+CDN_BASE_URL = os.getenv("CDN_BASE_URL")
+
+s3_client = boto3.client(
+    "s3",
+    region_name=AWS_REGION,
+    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+)
+
+def generate_presigned_s3_url(key: str, expires_in: int = 3600) -> str:
+    """
+    Generate the URL AssemblyAI will use to fetch the audio.
+    Prefer CDN (CloudFront) if configured, otherwise use S3 pre-signed URL.
+    """
+    if not key:
+        raise ValueError("S3 key is required to generate audio URL")
+
+    if CDN_BASE_URL:
+        base = CDN_BASE_URL.rstrip("/")
+        path = key.lstrip("/")
+        return f"{base}/{path}"  # https://dxxxx.cloudfront.net/uploads/audio/...
+
+    # Fallback: S3 pre-signed GET URL
+    return s3_client.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": S3_BUCKET_NAME, "Key": key},
+        ExpiresIn=expires_in,
+    )
 
 """ audio_id = ObjectId("672a50d20f0a5a829a05cbcc") 
 audio_document = audios_collection.find_one({"_id": audio_id}) """
@@ -136,31 +170,53 @@ def highlight_differences(original_text, your_reading):
 async def process_audio(audio_id:str):
     audio_document = audios_collection.find_one({"_id": ObjectId(audio_id)})
     if audio_document:
-        audio_file_url = audio_document["filePath"]
+        # NEW: prefer S3 key if present, fallback to legacy filePath
+        s3_key = audio_document.get("s3Key")
+        file_path = audio_document.get("filePath")
+        
+        # Generate pre-signed URL for S3 if key exists
+        if s3_key:
+            audio_file_url = generate_presigned_s3_url(s3_key)
+        elif file_path:
+            audio_file_url = file_path
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="No audio location found (missing s3Key and filePath)",
+            )
+
         story = audio_document["wholeStory"]
 
-        print("Audio File Path:", audio_file_url)
+        print("Audio File URL:", audio_file_url)
 
-        score=None
+        score = None
         if story:
-            #print("Enhanced Transcript:", enhanced_transcript)
-            scorer = Scorer(story, audio_file_url)  # Initialize scorer with story and audio URL
+            scorer = Scorer(story, audio_file_url)  # URL now points to S3
             transcript = scorer.true_transcript
             print("Transcript1:", transcript)
-            audios_collection.update_one({"_id": ObjectId(audio_id)}, {"$set": {"transcript": transcript}})
+            audios_collection.update_one(
+                {"_id": ObjectId(audio_id)}, {"$set": {"transcript": transcript}}
+            )
             enhanced_transcript = scorer.enhanced_trancript
             score = scorer.finalScore()
-            audios_collection.update_one({"_id": ObjectId(audio_id)}, {"$set": {"score": score}})
+            audios_collection.update_one(
+                {"_id": ObjectId(audio_id)}, {"$set": {"score": score}}
+            )
         else:
-            print("Error")
+            print("Error: story is empty or missing")
+            enhanced_transcript = None
+            transcript = None
 
-        return{
+        return {
             "transcript": transcript,
             "enhanced_transcript": enhanced_transcript if story else None,
-            "score": score
+            "score": score,
         }
     else:
         print("No audio document found with the specified criteria.")
+        raise HTTPException(status_code=404, detail="Audio not found")
+
+
 if __name__=="__main__":
     import uvicorn
     uvicorn.run(app,host="0.0.0.0",port=8000)
