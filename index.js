@@ -24,7 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "http://localhost:5173", // Specify the allowed origin
+    origin: ["http://localhost:5173", "https://btp-ai-storyteller-frontend.vercel.app/"], // Specify the allowed origin
     credentials: true, // Allow credentials (cookies, authentication)
   })
 );
