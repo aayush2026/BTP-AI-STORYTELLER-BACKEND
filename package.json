@@ -12,6 +12,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.932.0",
+    "@aws-sdk/s3-request-presigner": "^3.932.0",
     "@google/genai": "^1.28.0",
     "@google/generative-ai": "^0.24.1",
     "bcrypt": "^5.1.1",

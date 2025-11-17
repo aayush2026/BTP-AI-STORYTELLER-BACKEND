@@ -1,14 +1,20 @@
 import mongoose from "mongoose";
 
 const audioSchema = new mongoose.Schema({
-
-  filePath: { 
+  // S3 object key (e.g., "uploads/audio/1234567890-recording.wav")
+  s3Key: { 
     type: String, 
     required: true 
   },
+  // Original filename uploaded by user
   fileName: { 
     type: String, 
     required: true 
+  },
+  // Legacy field for backwards compatibility (can be removed if no old data exists)
+  filePath: { 
+    type: String, 
+    required: false 
   },
   createdAt: { 
     type: Date, 
