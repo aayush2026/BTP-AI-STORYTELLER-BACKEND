@@ -26,7 +26,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173", 
-      "https://btp-ai-storyteller-frontend.vercel.app/"
+      "https://btp-ai-storyteller-frontend.vercel.app"
     ], // Specify the allowed origin
     credentials: true, // Allow credentials (cookies, authentication)
   })
