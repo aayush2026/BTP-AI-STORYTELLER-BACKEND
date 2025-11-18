@@ -18,7 +18,10 @@ app=FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://btp-ai-storyteller-frontend.vercel.app/"],  # Add the frontend URL here
+    allow_origins=[
+        "http://localhost:5173", 
+        "https://btp-ai-storyteller-frontend.vercel.app/"
+    ], 
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allow all headers
